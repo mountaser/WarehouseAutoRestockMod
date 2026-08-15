@@ -1,22 +1,29 @@
 using HarmonyLib;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace WarehouseRestockMod
 {
-    [HarmonyPatch(typeof(MarketShoppingCart), "OnEnable")]
+    [HarmonyPatch(typeof(CartManager), "ReGenerateCartUI")]
     public static class MarketUIPatch
     {
-        public static void Postfix(MarketShoppingCart __instance)
+        public static void Postfix(CartManager __instance)
         {
             if (__instance == null) return;
 
-            Transform existing = __instance.transform.Find("FillRackStockButton");
+            MarketShoppingCart shoppingCart = __instance.MarketShoppingCart;
+            if (shoppingCart == null)
+            {
+                shoppingCart = GameObject.FindObjectOfType<MarketShoppingCart>();
+            }
+
+            if (shoppingCart == null) return;
+
+            Transform existing = shoppingCart.transform.Find("FillRackStockButton");
             if (existing != null) return;
 
             GameObject btnObj = new GameObject("FillRackStockButton");
-            btnObj.transform.SetParent(__instance.transform, false);
+            btnObj.transform.SetParent(shoppingCart.transform, false);
 
             RectTransform rt = btnObj.AddComponent<RectTransform>();
             rt.sizeDelta = new Vector2(180f, 45f);
@@ -56,7 +63,7 @@ namespace WarehouseRestockMod
 
             if (Plugin.LogSource != null)
             {
-                Plugin.LogSource.LogInfo("Successfully injected standalone 'FILL RACK STOCK' button into MarketShoppingCart!");
+                Plugin.LogSource.LogInfo("Successfully injected standalone 'FILL RACK STOCK' button via ReGenerateCartUI!");
             }
         }
 
