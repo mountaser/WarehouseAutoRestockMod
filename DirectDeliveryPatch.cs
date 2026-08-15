@@ -8,92 +8,83 @@ namespace WarehouseRestockMod
     [HarmonyPatch(typeof(DeliveryManager), "Delivery", new Type[] { typeof(CartData) })]
     public static class DirectDeliveryPatch
     {
-        public static bool Prefix(DeliveryManager __instance, CartData cartData)
+        public static void Postfix(DeliveryManager __instance, CartData cartData)
         {
             if (ModConfig.DirectToWarehouse == null || !ModConfig.DirectToWarehouse.Value)
             {
-                return true;
+                return;
             }
 
             if (cartData == null || cartData.ProductInCarts == null || cartData.ProductInCarts.Count == 0)
             {
-                return true;
+                return;
             }
 
-            if (Plugin.LogSource != null)
+            try
             {
-                Plugin.LogSource.LogInfo("Intercepting Delivery for Direct-to-Warehouse placement...");
-            }
-
-            Rack[] racks = GameObject.FindObjectsOfType<Rack>();
-            bool allPlaced = true;
-            int totalPlaced = 0;
-
-            foreach (ItemQuantity item in cartData.ProductInCarts)
-            {
-                if (item == null) continue;
-                int productID = GetProductIDFromItemQuantity(item);
-                int countNeeded = GetCountFromItemQuantity(item);
-
-                if (productID <= 0 || countNeeded <= 0) continue;
-
-                for (int i = 0; i < countNeeded; i++)
+                if (Plugin.LogSource != null)
                 {
-                    bool placed = TryPlaceBoxOnRack(racks, productID);
+                    Plugin.LogSource.LogInfo("Post-delivery processing: Moving delivered boxes directly onto warehouse racks...");
+                }
+
+                Rack[] racks = GameObject.FindObjectsOfType<Rack>();
+                if (racks == null || racks.Length == 0) return;
+
+                Box[] allBoxes = GameObject.FindObjectsOfType<Box>(true);
+                if (allBoxes == null || allBoxes.Length == 0) return;
+
+                int movedCount = 0;
+
+                foreach (Box box in allBoxes)
+                {
+                    if (box == null || box.Data == null) continue;
+                    int productID = box.Data.ProductID;
+                    if (productID <= 0) continue;
+
+                    bool isRacked = IsBoxRacked(box.Data);
+                    if (isRacked) continue;
+
+                    // Try placing this loose box onto a matching open rack slot
+                    bool placed = TryDockBoxToRack(racks, box, productID);
                     if (placed)
                     {
-                        totalPlaced++;
-                    }
-                    else
-                    {
-                        allPlaced = false;
-                        if (Plugin.LogSource != null)
-                        {
-                            Plugin.LogSource.LogWarning("Rack slots full for ProductID " + productID + " during direct delivery.");
-                        }
+                        movedCount++;
                     }
                 }
-            }
 
-            if (Plugin.LogSource != null)
+                if (Plugin.LogSource != null)
+                {
+                    Plugin.LogSource.LogInfo("Direct-to-Warehouse delivery completed! Successfully auto-docked " + movedCount + " boxes onto warehouse racks.");
+                }
+            }
+            catch (Exception ex)
             {
-                Plugin.LogSource.LogInfo("Direct-to-Warehouse delivery completed: placed " + totalPlaced + " boxes directly on warehouse racks!");
+                if (Plugin.LogSource != null)
+                {
+                    Plugin.LogSource.LogError("Error in DirectDeliveryPatch Postfix: " + ex.ToString());
+                }
             }
+        }
 
-            // If all ordered boxes were placed directly onto racks, skip vanilla street box spawning
-            if (allPlaced)
+        private static bool IsBoxRacked(BoxData data)
+        {
+            if (data == null) return false;
+            try
             {
-                return false;
+                Type t = data.GetType();
+                PropertyInfo pR = t.GetProperty("Racked", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (pR != null) return Convert.ToBoolean(pR.GetValue(data, null));
+
+                FieldInfo fR = t.GetField("Racked", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (fR != null) return Convert.ToBoolean(fR.GetValue(data));
             }
-
-            return true;
+            catch { }
+            return false;
         }
 
-        private static int GetProductIDFromItemQuantity(ItemQuantity item)
+        private static bool TryDockBoxToRack(Rack[] racks, Box box, int productID)
         {
-            if (item == null) return 0;
-            System.Type t = item.GetType();
-            FieldInfo f = t.GetField("First", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (f != null) return System.Convert.ToInt32(f.GetValue(item));
-            PropertyInfo p = t.GetProperty("First", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (p != null) return System.Convert.ToInt32(p.GetValue(item, null));
-            return 0;
-        }
-
-        private static int GetCountFromItemQuantity(ItemQuantity item)
-        {
-            if (item == null) return 0;
-            System.Type t = item.GetType();
-            FieldInfo f = t.GetField("Second", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (f != null) return System.Convert.ToInt32(f.GetValue(item));
-            PropertyInfo p = t.GetProperty("Second", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (p != null) return System.Convert.ToInt32(p.GetValue(item, null));
-            return 0;
-        }
-
-        private static bool TryPlaceBoxOnRack(Rack[] racks, int productID)
-        {
-            if (racks == null) return false;
+            if (racks == null || box == null) return false;
 
             foreach (Rack rack in racks)
             {
@@ -104,34 +95,25 @@ namespace WarehouseRestockMod
                     if (slot == null || slot.Data == null || slot.Data.ProductID != productID) continue;
 
                     int currentBoxes = (slot.Data.RackedBoxDatas != null) ? slot.Data.RackedBoxDatas.Count : 0;
-                    int maxBoxes = 2; // Default max boxes per slot
+                    int maxBoxes = 2; // Default max box capacity per slot
 
                     if (currentBoxes < maxBoxes)
                     {
-                        BoxData newBoxData = new BoxData();
-                        newBoxData.ProductID = productID;
-                        newBoxData.IsOpen = false;
-                        newBoxData.ProductCount = 24;
-
-                        if (slot.Data.RackedBoxDatas != null)
-                        {
-                            slot.Data.RackedBoxDatas.Add(newBoxData);
-                        }
-
                         try
                         {
-                            slot.UpdateRackedBoxDatas();
+                            // Add box to rack slot physically
+                            slot.AddBox(productID, box, true);
                             slot.RePositionBoxes();
+                            slot.UpdateRackedBoxDatas();
+                            return true;
                         }
                         catch (Exception ex)
                         {
                             if (Plugin.LogSource != null)
                             {
-                                Plugin.LogSource.LogWarning("RackSlot update notice: " + ex.Message);
+                                Plugin.LogSource.LogWarning("Failed to dock box to rack slot: " + ex.Message);
                             }
                         }
-
-                        return true;
                     }
                 }
             }
