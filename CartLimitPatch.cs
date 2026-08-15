@@ -1,8 +1,9 @@
+using System;
 using HarmonyLib;
 
 namespace WarehouseRestockMod
 {
-    [HarmonyPatch(typeof(CartManager), "CartMaxed")]
+    [HarmonyPatch(typeof(CartManager), "CartMaxed", new Type[] { typeof(bool) })]
     public static class CartLimitPatch_CartMaxed
     {
         public static bool Prefix(ref bool __result)
@@ -16,7 +17,7 @@ namespace WarehouseRestockMod
         }
     }
 
-    [HarmonyPatch(typeof(CartManager), "CartMaxedPassive")]
+    [HarmonyPatch(typeof(CartManager), "CartMaxedPassive", new Type[] { typeof(bool) })]
     public static class CartLimitPatch_CartMaxedPassive
     {
         public static bool Prefix(ref bool __result)

@@ -1,10 +1,11 @@
+using System;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
 namespace WarehouseRestockMod
 {
-    [HarmonyPatch(typeof(DeliveryManager), "Delivery")]
+    [HarmonyPatch(typeof(DeliveryManager), "Delivery", new Type[] { typeof(CartData) })]
     public static class DirectDeliveryPatch
     {
         public static bool Prefix(DeliveryManager __instance, CartData cartData)
