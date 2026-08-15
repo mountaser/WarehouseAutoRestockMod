@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -31,8 +30,8 @@ namespace WarehouseRestockMod
                 foreach (ItemQuantity itemQty in cartData.ProductInCarts)
                 {
                     if (itemQty == null) continue;
-                    int pId = GetProductIDFromItemQuantity(itemQty);
-                    int count = GetCountFromItemQuantity(itemQty);
+                    int pId = itemQty.FirstItemID;
+                    int count = itemQty.FirstItemCount;
 
                     if (pId <= 0 || count <= 0) continue;
 
@@ -56,36 +55,6 @@ namespace WarehouseRestockMod
                     Plugin.LogSource.LogWarning("GetTotalPrice patch notice: " + ex.Message);
                 }
             }
-        }
-
-        private static int GetProductIDFromItemQuantity(ItemQuantity item)
-        {
-            if (item == null) return 0;
-            try
-            {
-                Type t = item.GetType();
-                FieldInfo f = t.GetField("First", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (f != null) return Convert.ToInt32(f.GetValue(item));
-                PropertyInfo p = t.GetProperty("First", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (p != null) return Convert.ToInt32(p.GetValue(item, null));
-            }
-            catch { }
-            return 0;
-        }
-
-        private static int GetCountFromItemQuantity(ItemQuantity item)
-        {
-            if (item == null) return 1;
-            try
-            {
-                Type t = item.GetType();
-                FieldInfo f = t.GetField("Second", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (f != null) return Convert.ToInt32(f.GetValue(item));
-                PropertyInfo p = t.GetProperty("Second", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                if (p != null) return Convert.ToInt32(p.GetValue(item, null));
-            }
-            catch { }
-            return 1;
         }
     }
 }

@@ -29,12 +29,14 @@ namespace WarehouseRestockMod
 
                 if (__instance.m_ActualPrice != null)
                 {
+                    DiscountTextFormat.EnableAutoSize(__instance.m_ActualPrice);
                     __instance.m_ActualPrice.text = "<s>$" + origPrice.ToString("F2") + "</s>";
                 }
 
                 if (__instance.m_DiscountedPrice != null)
                 {
-                    __instance.m_DiscountedPrice.text = "<color=#10B981>$" + discPrice.ToString("F2") + " (-" + discountPct + "% Bulk)</color>";
+                    DiscountTextFormat.EnableAutoSize(__instance.m_DiscountedPrice);
+                    __instance.m_DiscountedPrice.text = "<color=#10B981>$" + discPrice.ToString("F2") + " (-" + discountPct + "%)</color>";
                     __instance.m_DiscountedPrice.gameObject.SetActive(true);
                 }
             }
