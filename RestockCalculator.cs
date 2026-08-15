@@ -72,9 +72,9 @@ namespace WarehouseRestockMod
                 }
             }
 
-            // 2. Count Loose Boxes in Delivery Landing Area / Floor
+            // 2. Count Loose Boxes in Delivery Landing Area / Floor (including inactive/pooled box objects)
             Dictionary<int, int> landingBoxes = new Dictionary<int, int>();
-            Box[] looseBoxes = GameObject.FindObjectsOfType<Box>();
+            Box[] looseBoxes = GameObject.FindObjectsOfType<Box>(true);
             if (looseBoxes != null)
             {
                 foreach (Box box in looseBoxes)
@@ -83,13 +83,31 @@ namespace WarehouseRestockMod
                     int pId = box.Data.ProductID;
                     if (pId <= 0) continue;
 
-                    if (landingBoxes.ContainsKey(pId))
+                    // Exclude boxes that are already placed on a rack slot
+                    bool isRacked = false;
+                    try
                     {
-                        landingBoxes[pId]++;
+                        Type t = box.Data.GetType();
+                        PropertyInfo pR = t.GetProperty("Racked", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (pR != null) isRacked = Convert.ToBoolean(pR.GetValue(box.Data, null));
+                        else
+                        {
+                            FieldInfo fR = t.GetField("Racked", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                            if (fR != null) isRacked = Convert.ToBoolean(fR.GetValue(box.Data));
+                        }
                     }
-                    else
+                    catch { }
+
+                    if (!isRacked)
                     {
-                        landingBoxes[pId] = 1;
+                        if (landingBoxes.ContainsKey(pId))
+                        {
+                            landingBoxes[pId]++;
+                        }
+                        else
+                        {
+                            landingBoxes[pId] = 1;
+                        }
                     }
                 }
             }

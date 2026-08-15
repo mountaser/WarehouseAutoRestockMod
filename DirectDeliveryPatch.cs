@@ -26,6 +26,8 @@ namespace WarehouseRestockMod
             }
 
             Rack[] racks = GameObject.FindObjectsOfType<Rack>();
+            bool allPlaced = true;
+            int totalPlaced = 0;
 
             foreach (ItemQuantity item in cartData.ProductInCarts)
             {
@@ -38,8 +40,13 @@ namespace WarehouseRestockMod
                 for (int i = 0; i < countNeeded; i++)
                 {
                     bool placed = TryPlaceBoxOnRack(racks, productID);
-                    if (!placed)
+                    if (placed)
                     {
+                        totalPlaced++;
+                    }
+                    else
+                    {
+                        allPlaced = false;
                         if (Plugin.LogSource != null)
                         {
                             Plugin.LogSource.LogWarning("Rack slots full for ProductID " + productID + " during direct delivery.");
@@ -48,22 +55,15 @@ namespace WarehouseRestockMod
                 }
             }
 
-            // Sync restocker AI targets so workers immediately see delivered stock
-            Restocker[] restockers = GameObject.FindObjectsOfType<Restocker>();
-            if (restockers != null)
-            {
-                foreach (Restocker r in restockers)
-                {
-                    if (r != null)
-                    {
-                        r.ResetRestocker();
-                    }
-                }
-            }
-
             if (Plugin.LogSource != null)
             {
-                Plugin.LogSource.LogInfo("Direct-to-Warehouse delivery completed with Restocker AI sync!");
+                Plugin.LogSource.LogInfo("Direct-to-Warehouse delivery completed: placed " + totalPlaced + " boxes directly on warehouse racks!");
+            }
+
+            // If all ordered boxes were placed directly onto racks, skip vanilla street box spawning
+            if (allPlaced)
+            {
+                return false;
             }
 
             return true;
@@ -113,7 +113,24 @@ namespace WarehouseRestockMod
                         newBoxData.IsOpen = false;
                         newBoxData.ProductCount = 24;
 
-                        slot.Data.RackedBoxDatas.Add(newBoxData);
+                        if (slot.Data.RackedBoxDatas != null)
+                        {
+                            slot.Data.RackedBoxDatas.Add(newBoxData);
+                        }
+
+                        try
+                        {
+                            slot.UpdateRackedBoxDatas();
+                            slot.RePositionBoxes();
+                        }
+                        catch (Exception ex)
+                        {
+                            if (Plugin.LogSource != null)
+                            {
+                                Plugin.LogSource.LogWarning("RackSlot update notice: " + ex.Message);
+                            }
+                        }
+
                         return true;
                     }
                 }
