@@ -93,16 +93,12 @@ namespace WarehouseRestockMod
                     hasLoggedInitialScan = true;
                 }
 
-                // Check if already injected in hierarchy
-                Transform existing = shoppingCart.transform.Find("FillRackStockButton");
-                if (existing == null && shoppingCart.transform.parent != null)
+                // CLEANUP & DEDUPLICATION: Search globally for existing FillRackStockButton
+                GameObject existingObj = GameObject.Find("FillRackStockButton");
+                if (existingObj != null)
                 {
-                    existing = shoppingCart.transform.parent.Find("FillRackStockButton");
-                }
-                if (existing != null)
-                {
-                    createdButtonObj = existing.gameObject;
-                    createdButtonRect = existing.GetComponent<RectTransform>();
+                    createdButtonObj = existingObj;
+                    createdButtonRect = existingObj.GetComponent<RectTransform>();
                     return;
                 }
 
@@ -141,7 +137,7 @@ namespace WarehouseRestockMod
                     parentContainer = anchorObj.transform.parent;
                 }
 
-                // Construct Red Restock Button
+                // Construct Red Restock Button ONCE
                 GameObject btnObj = new GameObject("FillRackStockButton");
                 btnObj.transform.SetParent(parentContainer, false);
 
