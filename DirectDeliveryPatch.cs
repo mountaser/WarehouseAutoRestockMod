@@ -101,21 +101,7 @@ namespace WarehouseRestockMod
                     {
                         try
                         {
-                            // Initialize empty slot if needed to avoid NullReferenceException on empty slots
-                            if (slot.Boxes == null || slot.Boxes.Count == 0)
-                            {
-                                try { slot.InitializeEmptySlot(); } catch { }
-                                try { slot.Initialize(box); }
-                                catch
-                                {
-                                    slot.AddBox(productID, box, true);
-                                }
-                            }
-                            else
-                            {
-                                slot.AddBox(productID, box, true);
-                            }
-
+                            slot.AddBox(productID, box, true);
                             try { slot.RePositionBoxes(); } catch { }
                             try { slot.UpdateRackedBoxDatas(); } catch { }
 
