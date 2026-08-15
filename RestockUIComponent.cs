@@ -62,28 +62,51 @@ namespace WarehouseRestockMod
                     hasLoggedInitialScan = true;
                 }
 
+                // Check if already injected
                 Transform existing = shoppingCart.transform.Find("FillRackStockButton");
                 if (existing != null) return;
 
-                // Construct standalone UI button container
+                // Find optimal parent container in MarketShoppingCart panel
+                Transform parentTransform = shoppingCart.transform;
+                Transform footer = shoppingCart.transform.Find("Footer") ?? 
+                                  shoppingCart.transform.Find("ActionButtons") ?? 
+                                  shoppingCart.transform.Find("Buttons");
+                if (footer != null)
+                {
+                    parentTransform = footer;
+                }
+
+                // Construct UI button container
                 GameObject btnObj = new GameObject("FillRackStockButton");
-                btnObj.transform.SetParent(shoppingCart.transform, false);
+                btnObj.transform.SetParent(parentTransform, false);
 
                 RectTransform rt = btnObj.AddComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(180f, 45f);
-                rt.anchoredPosition = new Vector2(0f, -80f);
+                // Compact 150x36 dimensions
+                rt.sizeDelta = new Vector2(150f, 36f);
 
-                // Dark green background image
+                // Dock near bottom center of cart panel
+                rt.anchorMin = new Vector2(0.5f, 0.05f);
+                rt.anchorMax = new Vector2(0.5f, 0.05f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = new Vector2(0f, 0f);
+
+                // Ensure button is at the top of z-order raycast stack
+                btnObj.transform.SetAsLastSibling();
+
+                // Dark emerald background image
                 Image img = btnObj.AddComponent<Image>();
-                img.color = new Color(0.15f, 0.55f, 0.25f, 1f);
+                img.color = new Color(0.08f, 0.40f, 0.20f, 1f);
+                img.raycastTarget = true; // Crucial for click registration
 
                 // Button interactivity & states
                 Button btn = btnObj.AddComponent<Button>();
                 ColorBlock cb = btn.colors;
-                cb.normalColor = new Color(0.15f, 0.55f, 0.25f, 1f);
-                cb.highlightedColor = new Color(0.20f, 0.70f, 0.32f, 1f);
-                cb.pressedColor = new Color(0.10f, 0.40f, 0.18f, 1f);
+                cb.normalColor = new Color(0.08f, 0.40f, 0.20f, 1f);
+                cb.highlightedColor = new Color(0.12f, 0.55f, 0.28f, 1f);
+                cb.pressedColor = new Color(0.05f, 0.28f, 0.14f, 1f);
+                cb.disabledColor = new Color(0.30f, 0.30f, 0.30f, 0.5f);
                 btn.colors = cb;
+                btn.targetGraphic = img;
 
                 // Fix IL2CPP delegate binding using DelegateSupport
                 UnityAction clickAction = DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnFillButtonClick));
@@ -100,10 +123,11 @@ namespace WarehouseRestockMod
 
                 Text txt = textObj.AddComponent<Text>();
                 txt.text = "FILL RACK STOCK";
-                txt.fontSize = 16;
+                txt.fontSize = 13;
                 txt.fontStyle = FontStyle.Bold;
                 txt.color = Color.white;
                 txt.alignment = TextAnchor.MiddleCenter;
+                txt.raycastTarget = false; // Prevent child text from blocking clicks
 
                 Font font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 if (font != null)
@@ -113,7 +137,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully injected 'FILL RACK STOCK' button into MarketShoppingCart!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully injected compact 'FILL RACK STOCK' button with active raycastTarget!");
                 }
             }
             catch (Exception ex)
