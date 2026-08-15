@@ -27,7 +27,7 @@ namespace WarehouseRestockMod
                     RestockCalculator.ExecuteRestockOrder();
                 }
 
-                // 2. Fail-safe mouse left-click detection (checks both WorldSpace Camera & Overlay)
+                // 2. Fail-safe mouse left-click detection (checks WorldSpace Camera & Overlay)
                 if (createdButtonRect != null && createdButtonObj != null && createdButtonObj.activeInHierarchy)
                 {
                     if (Input.GetMouseButtonDown(0))
@@ -44,7 +44,7 @@ namespace WarehouseRestockMod
                         {
                             if (Plugin.LogSource != null)
                             {
-                                Plugin.LogSource.LogInfo("[CLICK DETECTED] Icon button clicked! Populating cart...");
+                                Plugin.LogSource.LogInfo("[CLICK DETECTED] Restock button clicked! Populating cart...");
                             }
                             OnFillButtonClick();
                         }
@@ -110,29 +110,29 @@ namespace WarehouseRestockMod
                 createdButtonRect = rt;
                 createdButtonObj = btnObj;
 
-                // SMALL ICON BUTTON (34x34px)
-                rt.sizeDelta = new Vector2(34f, 34f);
+                // Sleek compact pill badge (88x26px)
+                rt.sizeDelta = new Vector2(88f, 26f);
 
-                // Anchor to Top-Right header right next to the green cart icon
+                // Anchor to Top-Right header next to green cart logo
                 rt.anchorMin = new Vector2(1f, 1f);
                 rt.anchorMax = new Vector2(1f, 1f);
                 rt.pivot = new Vector2(1f, 1f);
                 rt.anchoredPosition = new Vector2(-45f, -8f);
 
-                // Ensure top z-order in canvas
+                // Ensure top z-order in canvas stack
                 btnObj.transform.SetAsLastSibling();
 
-                // Dark emerald circular background image
+                // Dark emerald background image matching Market App UI theme
                 Image img = btnObj.AddComponent<Image>();
-                img.color = new Color(0.08f, 0.40f, 0.20f, 1f);
+                img.color = new Color(0.04f, 0.52f, 0.25f, 1f); // #0B8A42 Emerald Green
                 img.raycastTarget = true;
 
                 // Button component
                 Button btn = btnObj.AddComponent<Button>();
                 ColorBlock cb = btn.colors;
-                cb.normalColor = new Color(0.08f, 0.40f, 0.20f, 1f);
-                cb.highlightedColor = new Color(0.12f, 0.55f, 0.28f, 1f);
-                cb.pressedColor = new Color(0.05f, 0.28f, 0.14f, 1f);
+                cb.normalColor = new Color(0.04f, 0.52f, 0.25f, 1f);
+                cb.highlightedColor = new Color(0.08f, 0.65f, 0.32f, 1f);
+                cb.pressedColor = new Color(0.02f, 0.38f, 0.18f, 1f);
                 btn.colors = cb;
                 btn.targetGraphic = img;
 
@@ -140,18 +140,18 @@ namespace WarehouseRestockMod
                 UnityAction clickAction = DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnFillButtonClick));
                 btn.onClick.AddListener(clickAction);
 
-                // Icon GameObject child (Box / Restock Logo)
-                GameObject iconObj = new GameObject("Icon");
-                iconObj.transform.SetParent(btnObj.transform, false);
+                // Clean uppercase text label
+                GameObject textObj = new GameObject("Label");
+                textObj.transform.SetParent(btnObj.transform, false);
 
-                RectTransform iconRt = iconObj.AddComponent<RectTransform>();
-                iconRt.anchorMin = Vector2.zero;
-                iconRt.anchorMax = Vector2.one;
-                iconRt.sizeDelta = Vector2.zero;
+                RectTransform textRt = textObj.AddComponent<RectTransform>();
+                textRt.anchorMin = Vector2.zero;
+                textRt.anchorMax = Vector2.one;
+                textRt.sizeDelta = Vector2.zero;
 
-                Text txt = iconObj.AddComponent<Text>();
-                txt.text = "📦"; // Box / Restock Icon Logo
-                txt.fontSize = 20;
+                Text txt = textObj.AddComponent<Text>();
+                txt.text = "+ RESTOCK";
+                txt.fontSize = 11;
                 txt.fontStyle = FontStyle.Bold;
                 txt.color = Color.white;
                 txt.alignment = TextAnchor.MiddleCenter;
@@ -165,7 +165,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Injected small 34x34px icon button '📦' into Top-Right header next to green cart logo!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Injected clean '+ RESTOCK' pill button into Top-Right header!");
                 }
             }
             catch (Exception ex)
@@ -181,7 +181,7 @@ namespace WarehouseRestockMod
         {
             if (Plugin.LogSource != null)
             {
-                Plugin.LogSource.LogInfo("[EXECUTE RESTOCK] Small icon button clicked! Populating cart...");
+                Plugin.LogSource.LogInfo("[EXECUTE RESTOCK] Restock button clicked! Populating cart...");
             }
             RestockCalculator.ExecuteRestockOrder();
         }
