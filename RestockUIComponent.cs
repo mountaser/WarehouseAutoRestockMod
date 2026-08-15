@@ -10,6 +10,8 @@ namespace WarehouseRestockMod
     {
         private float lastCheckTime = 0f;
         private bool hasLoggedInitialScan = false;
+        private RectTransform createdButtonRect = null;
+        private GameObject createdButtonObj = null;
 
         private void Update()
         {
@@ -25,7 +27,25 @@ namespace WarehouseRestockMod
                     RestockCalculator.ExecuteRestockOrder();
                 }
 
-                // 2. Check UI every 0.2 seconds to minimize performance overhead
+                // 2. Direct screen point mouse click detection (100% fail-safe click handler)
+                if (createdButtonRect != null && createdButtonObj != null && createdButtonObj.activeInHierarchy)
+                {
+                    if (Input.GetMouseButtonDown(0))
+                    {
+                        Canvas canvas = createdButtonObj.GetComponentInParent<Canvas>();
+                        Camera cam = (canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay) ? canvas.worldCamera : null;
+                        if (RectTransformUtility.RectangleContainsScreenPoint(createdButtonRect, Input.mousePosition, cam))
+                        {
+                            if (Plugin.LogSource != null)
+                            {
+                                Plugin.LogSource.LogInfo("[CLICK DETECTED] Mouse left-click detected on FILL RACK STOCK button!");
+                            }
+                            OnFillButtonClick();
+                        }
+                    }
+                }
+
+                // 3. Check UI every 0.2 seconds to minimize performance overhead
                 if (Time.time - lastCheckTime > 0.2f)
                 {
                     lastCheckTime = Time.time;
@@ -54,7 +74,12 @@ namespace WarehouseRestockMod
                     shoppingCart = GameObject.FindObjectOfType<MarketShoppingCart>();
                 }
 
-                if (shoppingCart == null || !shoppingCart.gameObject.activeInHierarchy) return;
+                if (shoppingCart == null || !shoppingCart.gameObject.activeInHierarchy)
+                {
+                    createdButtonRect = null;
+                    createdButtonObj = null;
+                    return;
+                }
 
                 if (!hasLoggedInitialScan && Plugin.LogSource != null)
                 {
@@ -64,41 +89,40 @@ namespace WarehouseRestockMod
 
                 // Check if already injected
                 Transform existing = shoppingCart.transform.Find("FillRackStockButton");
-                if (existing != null) return;
-
-                // Find optimal parent container in MarketShoppingCart panel
-                Transform parentTransform = shoppingCart.transform;
-                Transform footer = shoppingCart.transform.Find("Footer") ?? 
-                                  shoppingCart.transform.Find("ActionButtons") ?? 
-                                  shoppingCart.transform.Find("Buttons");
-                if (footer != null)
+                if (existing != null)
                 {
-                    parentTransform = footer;
+                    createdButtonObj = existing.gameObject;
+                    createdButtonRect = existing.GetComponent<RectTransform>();
+                    return;
                 }
 
-                // Construct UI button container
+                // Parent directly to MarketShoppingCart panel root for top-right header positioning
                 GameObject btnObj = new GameObject("FillRackStockButton");
-                btnObj.transform.SetParent(parentTransform, false);
+                btnObj.transform.SetParent(shoppingCart.transform, false);
 
                 RectTransform rt = btnObj.AddComponent<RectTransform>();
-                // Compact 150x36 dimensions
-                rt.sizeDelta = new Vector2(150f, 36f);
+                createdButtonRect = rt;
+                createdButtonObj = btnObj;
 
-                // Dock near bottom center of cart panel
-                rt.anchorMin = new Vector2(0.5f, 0.05f);
-                rt.anchorMax = new Vector2(0.5f, 0.05f);
-                rt.pivot = new Vector2(0.5f, 0.5f);
-                rt.anchoredPosition = new Vector2(0f, 0f);
+                // Compact top-right header badge (140x32px)
+                rt.sizeDelta = new Vector2(140f, 32f);
 
-                // Ensure button is at the top of z-order raycast stack
+                // Anchor to Top-Right corner of Market screen/cart header
+                rt.anchorMin = new Vector2(1f, 1f);
+                rt.anchorMax = new Vector2(1f, 1f);
+                rt.pivot = new Vector2(1f, 1f);
+                // Positioned right next to top-right green cart icon (-60px left, -12px down)
+                rt.anchoredPosition = new Vector2(-60f, -12f);
+
+                // Ensure button is at top of canvas z-order stack
                 btnObj.transform.SetAsLastSibling();
 
-                // Dark emerald background image
+                // Dark emerald green background image
                 Image img = btnObj.AddComponent<Image>();
                 img.color = new Color(0.08f, 0.40f, 0.20f, 1f);
-                img.raycastTarget = true; // Crucial for click registration
+                img.raycastTarget = true;
 
-                // Button interactivity & states
+                // Unity UI Button component
                 Button btn = btnObj.AddComponent<Button>();
                 ColorBlock cb = btn.colors;
                 cb.normalColor = new Color(0.08f, 0.40f, 0.20f, 1f);
@@ -108,11 +132,11 @@ namespace WarehouseRestockMod
                 btn.colors = cb;
                 btn.targetGraphic = img;
 
-                // Fix IL2CPP delegate binding using DelegateSupport
+                // Event listener
                 UnityAction clickAction = DelegateSupport.ConvertDelegate<UnityAction>(new Action(OnFillButtonClick));
                 btn.onClick.AddListener(clickAction);
 
-                // Text GameObject child
+                // Text child
                 GameObject textObj = new GameObject("Text");
                 textObj.transform.SetParent(btnObj.transform, false);
 
@@ -123,11 +147,11 @@ namespace WarehouseRestockMod
 
                 Text txt = textObj.AddComponent<Text>();
                 txt.text = "FILL RACK STOCK";
-                txt.fontSize = 13;
+                txt.fontSize = 12;
                 txt.fontStyle = FontStyle.Bold;
                 txt.color = Color.white;
                 txt.alignment = TextAnchor.MiddleCenter;
-                txt.raycastTarget = false; // Prevent child text from blocking clicks
+                txt.raycastTarget = false;
 
                 Font font = Resources.GetBuiltinResource<Font>("Arial.ttf");
                 if (font != null)
@@ -137,7 +161,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully injected compact 'FILL RACK STOCK' button with active raycastTarget!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Placed 'FILL RACK STOCK' button in Top-Right header next to green cart icon!");
                 }
             }
             catch (Exception ex)
@@ -153,7 +177,7 @@ namespace WarehouseRestockMod
         {
             if (Plugin.LogSource != null)
             {
-                Plugin.LogSource.LogInfo("[TEST SUCCESS] FILL RACK STOCK button clicked! Executing auto-restock calculation...");
+                Plugin.LogSource.LogInfo("[EXECUTE RESTOCK] FILL RACK STOCK clicked! Populating cart...");
             }
             RestockCalculator.ExecuteRestockOrder();
         }
