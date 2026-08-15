@@ -27,7 +27,7 @@ namespace WarehouseRestockMod
                     RestockCalculator.ExecuteRestockOrder();
                 }
 
-                // 2. Direct mouse click detection (WorldSpace Camera & Overlay)
+                // 2. Direct mouse left-click detection (WorldSpace Camera & Overlay)
                 if (createdButtonRect != null && createdButtonObj != null && createdButtonObj.activeInHierarchy)
                 {
                     if (Input.GetMouseButtonDown(0))
@@ -95,9 +95,9 @@ namespace WarehouseRestockMod
 
                 // Check if already injected in hierarchy
                 Transform existing = shoppingCart.transform.Find("FillRackStockButton");
-                if (existing == null)
+                if (existing == null && shoppingCart.transform.parent != null)
                 {
-                    existing = shoppingCart.transform.parent != null ? shoppingCart.transform.parent.Find("FillRackStockButton") : null;
+                    existing = shoppingCart.transform.parent.Find("FillRackStockButton");
                 }
                 if (existing != null)
                 {
@@ -106,70 +106,81 @@ namespace WarehouseRestockMod
                     return;
                 }
 
-                // Locate cart icon GameObject (specifically excluding close/exit buttons)
-                GameObject neighborIcon = null;
-                Image neighborImg = null;
+                // Locate the true primary Shopping Cart button/icon
+                GameObject targetCartIconObj = null;
+                Image targetCartImg = null;
 
-                Image[] childImages = shoppingCart.GetComponentsInChildren<Image>(true);
-                if (childImages == null || childImages.Length == 0)
+                // Scan all buttons in MarketShoppingCart and parent canvas
+                Button[] buttons = shoppingCart.GetComponentsInChildren<Button>(true);
+                if (buttons == null || buttons.Length == 0)
                 {
                     if (shoppingCart.transform.parent != null)
                     {
-                        childImages = shoppingCart.transform.parent.GetComponentsInChildren<Image>(true);
+                        buttons = shoppingCart.transform.parent.GetComponentsInChildren<Button>(true);
                     }
                 }
 
-                if (childImages != null)
+                if (buttons != null)
                 {
-                    foreach (Image imgComp in childImages)
+                    foreach (Button btnComp in buttons)
                     {
-                        if (imgComp == null || imgComp.sprite == null) continue;
-                        string objName = imgComp.gameObject.name.ToLower();
-                        string spriteName = imgComp.sprite.name != null ? imgComp.sprite.name.ToLower() : "";
+                        if (btnComp == null) continue;
+                        string bName = btnComp.gameObject.name.ToLower();
 
-                        // EXPLICITLY SKIP CLOSE/EXIT/CANCEL BUTTONS
-                        if (objName.Contains("close") || objName.Contains("exit") || objName.Contains("cancel") || objName.Contains("x") ||
-                            spriteName.Contains("close") || spriteName.Contains("exit") || spriteName.Contains("cancel"))
+                        // SKIP ALL CLOSE / EXIT / CANCEL BUTTONS
+                        if (bName.Contains("close") || bName.Contains("exit") || bName.Contains("cancel") || bName == "x" || bName.Contains("cross"))
                         {
                             continue;
                         }
 
-                        // MATCH CART OR BASKET OR SHOPPING GRAPHIC SPECIFICALLY
-                        if (objName.Contains("cart") || objName.Contains("basket") || objName.Contains("shop") ||
-                            spriteName.Contains("cart") || spriteName.Contains("basket") || spriteName.Contains("shop"))
+                        // Match Shopping Cart button specifically
+                        if (bName.Contains("cart") || bName.Contains("basket") || bName.Contains("market"))
                         {
-                            if (imgComp.gameObject.name != "FillRackStockButton")
+                            if (btnComp.gameObject.name != "FillRackStockButton")
                             {
-                                neighborIcon = imgComp.gameObject;
-                                neighborImg = imgComp;
+                                targetCartIconObj = btnComp.gameObject;
+                                targetCartImg = btnComp.GetComponent<Image>() ?? btnComp.GetComponentInChildren<Image>();
                                 break;
                             }
                         }
                     }
                 }
 
-                // Fallback: If no cart-named image found, pick first non-close image with a sprite
-                if (neighborIcon == null && childImages != null)
+                // If no button matched by name, scan images for cart/basket sprite
+                if (targetCartIconObj == null)
                 {
-                    foreach (Image imgComp in childImages)
+                    Image[] images = shoppingCart.GetComponentsInChildren<Image>(true);
+                    if (images != null)
                     {
-                        if (imgComp == null || imgComp.sprite == null) continue;
-                        string objName = imgComp.gameObject.name.ToLower();
-                        if (objName.Contains("close") || objName.Contains("exit") || objName.Contains("cancel")) continue;
-                        if (imgComp.gameObject.name != "FillRackStockButton")
+                        foreach (Image imgComp in images)
                         {
-                            neighborIcon = imgComp.gameObject;
-                            neighborImg = imgComp;
-                            break;
+                            if (imgComp == null || imgComp.sprite == null) continue;
+                            string iName = imgComp.gameObject.name.ToLower();
+                            string sName = imgComp.sprite.name != null ? imgComp.sprite.name.ToLower() : "";
+
+                            if (iName.Contains("close") || iName.Contains("exit") || sName.Contains("close") || sName.Contains("exit"))
+                            {
+                                continue;
+                            }
+
+                            if (iName.Contains("cart") || iName.Contains("basket") || sName.Contains("cart") || sName.Contains("basket"))
+                            {
+                                if (imgComp.gameObject.name != "FillRackStockButton")
+                                {
+                                    targetCartIconObj = imgComp.gameObject;
+                                    targetCartImg = imgComp;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
 
                 // Parent container selection
                 Transform parentContainer = shoppingCart.transform;
-                if (neighborIcon != null && neighborIcon.transform.parent != null)
+                if (targetCartIconObj != null && targetCartIconObj.transform.parent != null)
                 {
-                    parentContainer = neighborIcon.transform.parent;
+                    parentContainer = targetCartIconObj.transform.parent;
                 }
 
                 // Construct Red Cart Logo Button
@@ -180,23 +191,23 @@ namespace WarehouseRestockMod
                 createdButtonRect = rt;
                 createdButtonObj = btnObj;
 
-                if (neighborIcon != null)
+                if (targetCartIconObj != null)
                 {
-                    RectTransform neighborRt = neighborIcon.GetComponent<RectTransform>();
-                    if (neighborRt != null)
+                    RectTransform targetRt = targetCartIconObj.GetComponent<RectTransform>();
+                    if (targetRt != null)
                     {
-                        rt.sizeDelta = neighborRt.sizeDelta;
-                        rt.anchorMin = neighborRt.anchorMin;
-                        rt.anchorMax = neighborRt.anchorMax;
-                        rt.pivot = neighborRt.pivot;
+                        rt.sizeDelta = targetRt.sizeDelta;
+                        rt.anchorMin = targetRt.anchorMin;
+                        rt.anchorMax = targetRt.anchorMax;
+                        rt.pivot = targetRt.pivot;
 
-                        // Position horizontally adjacent to cart icon
-                        float spacing = neighborRt.sizeDelta.x > 0 ? neighborRt.sizeDelta.x + 8f : 32f;
-                        rt.anchoredPosition = new Vector2(neighborRt.anchoredPosition.x - spacing, neighborRt.anchoredPosition.y);
+                        // Position horizontally adjacent to target cart icon (-size.x - 6px spacing)
+                        float width = targetRt.sizeDelta.x > 0 ? targetRt.sizeDelta.x : 28f;
+                        rt.anchoredPosition = new Vector2(targetRt.anchoredPosition.x - (width + 6f), targetRt.anchoredPosition.y);
                     }
 
-                    // Insert next to cart icon in sibling index for layout groups
-                    int siblingIdx = neighborIcon.transform.GetSiblingIndex();
+                    // Insert next to target cart icon in sibling index for layout groups
+                    int siblingIdx = targetCartIconObj.transform.GetSiblingIndex();
                     btnObj.transform.SetSiblingIndex(siblingIdx);
                 }
                 else
@@ -206,15 +217,15 @@ namespace WarehouseRestockMod
                     rt.anchorMin = new Vector2(1f, 1f);
                     rt.anchorMax = new Vector2(1f, 1f);
                     rt.pivot = new Vector2(1f, 1f);
-                    rt.anchoredPosition = new Vector2(-48f, -10f);
+                    rt.anchoredPosition = new Vector2(-55f, -12f);
                     btnObj.transform.SetAsLastSibling();
                 }
 
                 // Bright Red Image Component (#EF4444)
                 Image btnImg = btnObj.AddComponent<Image>();
-                if (neighborImg != null && neighborImg.sprite != null)
+                if (targetCartImg != null && targetCartImg.sprite != null)
                 {
-                    btnImg.sprite = neighborImg.sprite;
+                    btnImg.sprite = targetCartImg.sprite;
                 }
                 btnImg.color = new Color(0.94f, 0.27f, 0.27f, 1f); // Bright Red (#EF4444)
                 btnImg.raycastTarget = true;
@@ -234,7 +245,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully cloned true Cart Icon sprite & injected Red Cart Logo button!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully cloned primary Shopping Cart button & injected Red Cart Logo button!");
                 }
             }
             catch (Exception ex)
