@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
+using TMPro;
 
 namespace WarehouseRestockMod
 {
@@ -14,26 +15,8 @@ namespace WarehouseRestockMod
         }
     }
 
-    [HarmonyPatch(typeof(MarketShoppingCart), "UpdateUI", new Type[] { typeof(bool) })]
-    public static class MarketShoppingCart_UpdateUIPatch
-    {
-        public static void Postfix(MarketShoppingCart __instance)
-        {
-            CartItemDiscountUtility.FormatAllCartItems(__instance);
-        }
-    }
-
     [HarmonyPatch(typeof(CartItem), "UpdateUnitPrice")]
     public static class CartItem_UpdateUnitPricePatch
-    {
-        public static void Postfix(CartItem __instance)
-        {
-            CartItemDiscountUtility.ApplyDiscountFormatting(__instance);
-        }
-    }
-
-    [HarmonyPatch(typeof(CartItem), "UpdateTotalPrice")]
-    public static class CartItem_UpdateTotalPricePatch
     {
         public static void Postfix(CartItem __instance)
         {
@@ -98,14 +81,51 @@ namespace WarehouseRestockMod
                 float totalOrig = unitOrig * count;
                 float totalDisc = unitDisc * count;
 
-                if (item.m_UnitPriceText != null)
+                TMP_Text unitText = null;
+                TMP_Text totalText = null;
+
+                try { unitText = item.m_UnitPriceText; } catch { }
+                try { totalText = item.m_TotalPriceText; } catch { }
+
+                // Fallback to searching child TMP_Text elements on CartItem transform
+                TMP_Text[] allTexts = item.GetComponentsInChildren<TMP_Text>(true);
+                if (allTexts != null && allTexts.Length > 0)
                 {
-                    item.m_UnitPriceText.text = "<s>$" + unitOrig.ToString("F2") + "</s> <color=#10B981>$" + unitDisc.ToString("F2") + " (-" + discountPct + "% Bulk)</color>";
+                    foreach (TMP_Text txt in allTexts)
+                    {
+                        if (txt == null) continue;
+                        string n = txt.name.ToLowerInvariant();
+                        if (n.Contains("unit") || n.Contains("cost"))
+                        {
+                            if (unitText == null) unitText = txt;
+                        }
+                        else if (n.Contains("total") || n.Contains("price"))
+                        {
+                            if (totalText == null) totalText = txt;
+                        }
+                    }
+
+                    if (unitText == null && allTexts.Length >= 2)
+                    {
+                        unitText = allTexts[allTexts.Length - 2];
+                    }
+                    if (totalText == null && allTexts.Length >= 1)
+                    {
+                        totalText = allTexts[allTexts.Length - 1];
+                    }
                 }
 
-                if (item.m_TotalPriceText != null)
+                string unitFormatted = "<s>$" + unitOrig.ToString("F2") + "</s> <color=#10B981>$" + unitDisc.ToString("F2") + " (-" + discountPct + "% Bulk)</color>";
+                string totalFormatted = "<s>$" + totalOrig.ToString("F2") + "</s> <color=#10B981>$" + totalDisc.ToString("F2") + " (-" + discountPct + "% Bulk)</color>";
+
+                if (unitText != null && !unitText.text.Contains("Bulk"))
                 {
-                    item.m_TotalPriceText.text = "<s>$" + totalOrig.ToString("F2") + "</s> <color=#10B981>$" + totalDisc.ToString("F2") + " (-" + discountPct + "% Bulk)</color>";
+                    unitText.text = unitFormatted;
+                }
+
+                if (totalText != null && !totalText.text.Contains("Bulk"))
+                {
+                    totalText.text = totalFormatted;
                 }
             }
         }

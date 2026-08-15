@@ -129,6 +129,9 @@ namespace WarehouseRestockMod
                     hasLoggedInitialScan = true;
                 }
 
+                // Continuous Cart UI Price Discount Formatter
+                CartItemDiscountUtility.FormatAllCartItems(shoppingCart);
+
                 // CLEANUP & DEDUPLICATION: Search inside MarketShoppingCart for existing button
                 Transform existing = shoppingCart.transform.Find("FillRackStockButton");
                 if (existing != null)

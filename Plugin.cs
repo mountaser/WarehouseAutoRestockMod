@@ -33,9 +33,7 @@ namespace WarehouseRestockMod
             SafePatch(harmony, typeof(MarketShoppingCart_CloseMarketPatch));
             SafePatch(harmony, typeof(MarketShoppingCart_TimeCheckPatch));
             SafePatch(harmony, typeof(MarketShoppingCart_ReGenerateCartUIPatch));
-            SafePatch(harmony, typeof(MarketShoppingCart_UpdateUIPatch));
             SafePatch(harmony, typeof(CartItem_UpdateUnitPricePatch));
-            SafePatch(harmony, typeof(CartItem_UpdateTotalPricePatch));
 
             Log.LogInfo(PluginInfo.PLUGIN_NAME + " v" + PluginInfo.PLUGIN_VERSION + " initialized with Night Market Ordering, Wholesale Restock Discounts & UI!");
         }
