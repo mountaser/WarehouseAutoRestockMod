@@ -5,21 +5,21 @@ using UnityEngine;
 
 namespace WarehouseRestockMod
 {
-    [HarmonyPatch(typeof(CartItem), "Setup", new Type[] { typeof(ItemQuantity), typeof(MarketShoppingCart), typeof(SalesType) })]
-    public static class CartItem_SetupPatch
+    [HarmonyPatch(typeof(MarketShoppingCart), "ReGenerateCartUI")]
+    public static class MarketShoppingCart_ReGenerateCartUIPatch
     {
-        public static void Postfix(CartItem __instance)
+        public static void Postfix(MarketShoppingCart __instance)
         {
-            CartItemDiscountUtility.ApplyDiscountFormatting(__instance);
+            CartItemDiscountUtility.FormatAllCartItems(__instance);
         }
     }
 
-    [HarmonyPatch(typeof(CartItem), "Setup", new Type[] { typeof(ItemQuantity), typeof(SalesType) })]
-    public static class CartItem_SetupShortPatch
+    [HarmonyPatch(typeof(MarketShoppingCart), "UpdateUI", new Type[] { typeof(bool) })]
+    public static class MarketShoppingCart_UpdateUIPatch
     {
-        public static void Postfix(CartItem __instance)
+        public static void Postfix(MarketShoppingCart __instance)
         {
-            CartItemDiscountUtility.ApplyDiscountFormatting(__instance);
+            CartItemDiscountUtility.FormatAllCartItems(__instance);
         }
     }
 
@@ -43,6 +43,28 @@ namespace WarehouseRestockMod
 
     public static class CartItemDiscountUtility
     {
+        public static void FormatAllCartItems(MarketShoppingCart shoppingCart)
+        {
+            if (shoppingCart == null) return;
+            try
+            {
+                CartItem[] cartItems = shoppingCart.GetComponentsInChildren<CartItem>(true);
+                if (cartItems == null) return;
+
+                foreach (CartItem item in cartItems)
+                {
+                    ApplyDiscountFormatting(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Plugin.LogSource != null)
+                {
+                    Plugin.LogSource.LogWarning("FormatAllCartItems notice: " + ex.Message);
+                }
+            }
+        }
+
         public static void ApplyDiscountFormatting(CartItem item)
         {
             if (ModConfig.ShowDiscountIndicatorsInUI == null || !ModConfig.ShowDiscountIndicatorsInUI.Value) return;
