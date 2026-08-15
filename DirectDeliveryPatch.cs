@@ -101,7 +101,15 @@ namespace WarehouseRestockMod
                     {
                         try
                         {
-                            slot.AddBox(productID, box, true);
+                            if (slot.Boxes == null || slot.Boxes.Count == 0)
+                            {
+                                slot.Initialize(box);
+                            }
+                            else
+                            {
+                                slot.AddBox(productID, box, true);
+                            }
+
                             try { slot.RePositionBoxes(); } catch { }
                             try { slot.UpdateRackedBoxDatas(); } catch { }
 

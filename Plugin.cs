@@ -32,6 +32,8 @@ namespace WarehouseRestockMod
             SafePatch(harmony, typeof(MarketShoppingCart_TooLateToOrderGoodsPatch));
             SafePatch(harmony, typeof(MarketShoppingCart_CloseMarketPatch));
             SafePatch(harmony, typeof(MarketShoppingCart_TimeCheckPatch));
+            SafePatch(harmony, typeof(CartItem_SetupPatch));
+            SafePatch(harmony, typeof(CartItem_SetupShortPatch));
             SafePatch(harmony, typeof(CartItem_UpdateUnitPricePatch));
             SafePatch(harmony, typeof(CartItem_UpdateTotalPricePatch));
 
