@@ -106,7 +106,7 @@ namespace WarehouseRestockMod
                     return;
                 }
 
-                // Locate neighboring logo/cart icon GameObject to align natively
+                // Locate cart icon GameObject (specifically excluding close/exit buttons)
                 GameObject neighborIcon = null;
                 Image neighborImg = null;
 
@@ -125,7 +125,18 @@ namespace WarehouseRestockMod
                     {
                         if (imgComp == null || imgComp.sprite == null) continue;
                         string objName = imgComp.gameObject.name.ToLower();
-                        if (objName.Contains("cart") || objName.Contains("icon") || objName.Contains("basket") || objName.Contains("button"))
+                        string spriteName = imgComp.sprite.name != null ? imgComp.sprite.name.ToLower() : "";
+
+                        // EXPLICITLY SKIP CLOSE/EXIT/CANCEL BUTTONS
+                        if (objName.Contains("close") || objName.Contains("exit") || objName.Contains("cancel") || objName.Contains("x") ||
+                            spriteName.Contains("close") || spriteName.Contains("exit") || spriteName.Contains("cancel"))
+                        {
+                            continue;
+                        }
+
+                        // MATCH CART OR BASKET OR SHOPPING GRAPHIC SPECIFICALLY
+                        if (objName.Contains("cart") || objName.Contains("basket") || objName.Contains("shop") ||
+                            spriteName.Contains("cart") || spriteName.Contains("basket") || spriteName.Contains("shop"))
                         {
                             if (imgComp.gameObject.name != "FillRackStockButton")
                             {
@@ -133,6 +144,23 @@ namespace WarehouseRestockMod
                                 neighborImg = imgComp;
                                 break;
                             }
+                        }
+                    }
+                }
+
+                // Fallback: If no cart-named image found, pick first non-close image with a sprite
+                if (neighborIcon == null && childImages != null)
+                {
+                    foreach (Image imgComp in childImages)
+                    {
+                        if (imgComp == null || imgComp.sprite == null) continue;
+                        string objName = imgComp.gameObject.name.ToLower();
+                        if (objName.Contains("close") || objName.Contains("exit") || objName.Contains("cancel")) continue;
+                        if (imgComp.gameObject.name != "FillRackStockButton")
+                        {
+                            neighborIcon = imgComp.gameObject;
+                            neighborImg = imgComp;
+                            break;
                         }
                     }
                 }
@@ -162,12 +190,12 @@ namespace WarehouseRestockMod
                         rt.anchorMax = neighborRt.anchorMax;
                         rt.pivot = neighborRt.pivot;
 
-                        // Position horizontally adjacent to neighboring icon (-size.x - 8px spacing)
+                        // Position horizontally adjacent to cart icon
                         float spacing = neighborRt.sizeDelta.x > 0 ? neighborRt.sizeDelta.x + 8f : 32f;
                         rt.anchoredPosition = new Vector2(neighborRt.anchoredPosition.x - spacing, neighborRt.anchoredPosition.y);
                     }
 
-                    // Insert next to neighboring icon in sibling index for layout groups
+                    // Insert next to cart icon in sibling index for layout groups
                     int siblingIdx = neighborIcon.transform.GetSiblingIndex();
                     btnObj.transform.SetSiblingIndex(siblingIdx);
                 }
@@ -206,7 +234,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully injected natively-aligned Red Cart Logo button into header layout container!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully cloned true Cart Icon sprite & injected Red Cart Logo button!");
                 }
             }
             catch (Exception ex)
