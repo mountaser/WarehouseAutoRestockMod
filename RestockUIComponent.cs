@@ -51,7 +51,20 @@ namespace WarehouseRestockMod
                     }
                 }
 
-                // 3. Check UI every 0.2 seconds
+                // 3. Visibility Check (Only active when Products/Market Shopping Cart is open)
+                CartManager cart = CartManager.Instance;
+                MarketShoppingCart shoppingCart = (cart != null) ? cart.MarketShoppingCart : GameObject.FindObjectOfType<MarketShoppingCart>();
+                bool isMarketOpen = (shoppingCart != null && shoppingCart.gameObject.activeInHierarchy);
+
+                if (createdButtonObj != null)
+                {
+                    if (createdButtonObj.activeSelf != isMarketOpen)
+                    {
+                        createdButtonObj.SetActive(isMarketOpen);
+                    }
+                }
+
+                // 4. Check UI injection every 0.2 seconds
                 if (Time.time - lastCheckTime > 0.2f)
                 {
                     lastCheckTime = Time.time;
@@ -82,8 +95,10 @@ namespace WarehouseRestockMod
 
                 if (shoppingCart == null || !shoppingCart.gameObject.activeInHierarchy)
                 {
-                    createdButtonRect = null;
-                    createdButtonObj = null;
+                    if (createdButtonObj != null)
+                    {
+                        createdButtonObj.SetActive(false);
+                    }
                     return;
                 }
 
@@ -99,6 +114,7 @@ namespace WarehouseRestockMod
                 {
                     createdButtonObj = existingObj;
                     createdButtonRect = existingObj.GetComponent<RectTransform>();
+                    existingObj.SetActive(true);
                     return;
                 }
 
@@ -127,7 +143,7 @@ namespace WarehouseRestockMod
                     }
                 }
 
-                // Select target anchor button (Vehicles button or Cart logo)
+                // Select target anchor button (Vehicles button preferred, fallback to Cart logo)
                 GameObject anchorObj = vehicleBtnObj ?? cartLogoObj;
 
                 // Select parent container
@@ -150,24 +166,26 @@ namespace WarehouseRestockMod
                     RectTransform anchorRt = anchorObj.GetComponent<RectTransform>();
                     if (anchorRt != null)
                     {
-                        rt.sizeDelta = anchorRt.sizeDelta;
+                        // Match compact logo height/size (28x28px)
+                        float iconSize = Math.Min(28f, anchorRt.sizeDelta.y > 0 ? anchorRt.sizeDelta.y : 28f);
+                        rt.sizeDelta = new Vector2(iconSize, iconSize);
                         rt.anchorMin = anchorRt.anchorMin;
                         rt.anchorMax = anchorRt.anchorMax;
                         rt.pivot = anchorRt.pivot;
 
-                        // Position horizontally immediately to the left of Vehicles button
-                        float width = anchorRt.sizeDelta.x > 0 ? anchorRt.sizeDelta.x : 36f;
-                        rt.anchoredPosition = new Vector2(anchorRt.anchoredPosition.x - (width + 6f), anchorRt.anchoredPosition.y);
+                        // Position horizontally AFTER Vehicles logo (to the right of Vehicles)
+                        float width = anchorRt.sizeDelta.x > 0 ? anchorRt.sizeDelta.x : iconSize;
+                        rt.anchoredPosition = new Vector2(anchorRt.anchoredPosition.x + (width + 6f), anchorRt.anchoredPosition.y);
                     }
 
-                    // Insert next to anchor in sibling layout order
+                    // Insert AFTER Vehicles button in sibling layout order
                     int siblingIdx = anchorObj.transform.GetSiblingIndex();
-                    btnObj.transform.SetSiblingIndex(Math.Max(0, siblingIdx - 1));
+                    btnObj.transform.SetSiblingIndex(siblingIdx + 1);
                 }
                 else
                 {
-                    // Fallback top-right header alignment (80x28px pill badge)
-                    rt.sizeDelta = new Vector2(80f, 28f);
+                    // Fallback top-right header alignment (28x28px pill badge)
+                    rt.sizeDelta = new Vector2(28f, 28f);
                     rt.anchorMin = new Vector2(1f, 1f);
                     rt.anchorMax = new Vector2(1f, 1f);
                     rt.pivot = new Vector2(1f, 1f);
@@ -189,7 +207,7 @@ namespace WarehouseRestockMod
                 btn.colors = cb;
                 btn.targetGraphic = btnImg;
 
-                // Add crisp uppercase label text (+RESTOCK)
+                // Add crisp uppercase label text (+FILL)
                 GameObject textObj = new GameObject("Text");
                 textObj.transform.SetParent(btnObj.transform, false);
 
@@ -199,8 +217,8 @@ namespace WarehouseRestockMod
                 textRt.sizeDelta = Vector2.zero;
 
                 Text txt = textObj.AddComponent<Text>();
-                txt.text = "+RESTOCK";
-                txt.fontSize = 10;
+                txt.text = "+FILL";
+                txt.fontSize = 9;
                 txt.fontStyle = FontStyle.Bold;
                 txt.color = Color.white;
                 txt.alignment = TextAnchor.MiddleCenter;
@@ -218,7 +236,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully placed Red Restock button immediately left of Vehicles button!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Placed compact Red Restock button after Vehicles logo on Products tab!");
                 }
             }
             catch (Exception ex)
