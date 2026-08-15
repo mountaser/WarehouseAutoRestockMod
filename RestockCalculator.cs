@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -140,6 +141,23 @@ namespace WarehouseRestockMod
                 if (capEnabledOuter && (currentCartTotal + pricePerBox > availableCash))
                 {
                     break;
+                }
+            }
+
+            // TRIGGER UI REFRESH IN MARKET SHOPPING CART
+            try
+            {
+                MarketShoppingCart marketCart = cart.MarketShoppingCart ?? GameObject.FindObjectOfType<MarketShoppingCart>();
+                if (marketCart != null)
+                {
+                    marketCart.ReGenerateCartUI();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Plugin.LogSource != null)
+                {
+                    Plugin.LogSource.LogWarning("ReGenerateCartUI notice: " + ex.Message);
                 }
             }
 
