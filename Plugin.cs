@@ -2,6 +2,7 @@ using System;
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
+using Il2CppInterop.Runtime.Injection;
 using HarmonyLib;
 
 namespace WarehouseRestockMod
@@ -19,14 +20,17 @@ namespace WarehouseRestockMod
 
             ModConfig.Initialize(Config);
 
+            // Register IL2CPP Component & attach component host
+            ClassInjector.RegisterTypeInIl2Cpp<RestockUIComponent>();
+            IL2CPPChainloader.AddUnityComponent(typeof(RestockUIComponent));
+
             Harmony harmony = new Harmony(PluginInfo.PLUGIN_GUID);
 
-            SafePatch(harmony, typeof(MarketUIPatch));
             SafePatch(harmony, typeof(CartLimitPatch_CartMaxed));
             SafePatch(harmony, typeof(CartLimitPatch_CartMaxedPassive));
             SafePatch(harmony, typeof(DirectDeliveryPatch));
 
-            Log.LogInfo(PluginInfo.PLUGIN_NAME + " v" + PluginInfo.PLUGIN_VERSION + " initialized and loaded successfully!");
+            Log.LogInfo(PluginInfo.PLUGIN_NAME + " v" + PluginInfo.PLUGIN_VERSION + " initialized with F6 Hotkey & Component UI!");
         }
 
         private static void SafePatch(Harmony harmony, Type patchType)
