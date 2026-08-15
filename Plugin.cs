@@ -29,8 +29,11 @@ namespace WarehouseRestockMod
             SafePatch(harmony, typeof(CartLimitPatch_CartMaxed));
             SafePatch(harmony, typeof(CartLimitPatch_CartMaxedPassive));
             SafePatch(harmony, typeof(DirectDeliveryPatch));
+            SafePatch(harmony, typeof(MarketShoppingCart_TooLateToOrderGoodsPatch));
+            SafePatch(harmony, typeof(MarketShoppingCart_CloseMarketPatch));
+            SafePatch(harmony, typeof(MarketShoppingCart_TimeCheckPatch));
 
-            Log.LogInfo(PluginInfo.PLUGIN_NAME + " v" + PluginInfo.PLUGIN_VERSION + " initialized with F6 Hotkey & Component UI!");
+            Log.LogInfo(PluginInfo.PLUGIN_NAME + " v" + PluginInfo.PLUGIN_VERSION + " initialized with Night Market Ordering, Wholesale Restock Discounts & UI!");
         }
 
         private static void SafePatch(Harmony harmony, Type patchType)

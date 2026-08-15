@@ -186,6 +186,13 @@ namespace WarehouseRestockMod
                     }
                 }
 
+                // Apply Wholesale Bulk Restock Discount if configured
+                if (ModConfig.WholesaleRestockDiscountPercent != null && ModConfig.WholesaleRestockDiscountPercent.Value > 0)
+                {
+                    int discountPct = Mathf.Clamp(ModConfig.WholesaleRestockDiscountPercent.Value, 0, 50);
+                    pricePerBox = pricePerBox * (1f - (discountPct / 100f));
+                }
+
                 int boxesToAdd = 0;
                 for (int i = 0; i < countNeeded; i++)
                 {

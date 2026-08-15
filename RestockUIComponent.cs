@@ -17,14 +17,35 @@ namespace WarehouseRestockMod
         {
             try
             {
-                // 1. Hotkey F6 trigger anytime in-game
-                if (Input.GetKeyDown(KeyCode.F6))
+                // 1. Configurable Hotkeys (Default to None / Unmapped)
+                if (ModConfig.RestockHotkey != null && ModConfig.RestockHotkey.Value != KeyCode.None && Input.GetKeyDown(ModConfig.RestockHotkey.Value))
                 {
                     if (Plugin.LogSource != null)
                     {
-                        Plugin.LogSource.LogInfo("F6 Hotkey pressed! Executing auto-restock calculation...");
+                        Plugin.LogSource.LogInfo("Restock Hotkey pressed! Executing auto-restock calculation...");
                     }
                     RestockCalculator.ExecuteRestockOrder();
+                }
+
+                if (ModConfig.NightOrderingToggleHotkey != null && ModConfig.NightOrderingToggleHotkey.Value != KeyCode.None && Input.GetKeyDown(ModConfig.NightOrderingToggleHotkey.Value))
+                {
+                    if (ModConfig.AllowOrderingAfter9PM != null)
+                    {
+                        ModConfig.AllowOrderingAfter9PM.Value = !ModConfig.AllowOrderingAfter9PM.Value;
+                        if (Plugin.LogSource != null)
+                        {
+                            Plugin.LogSource.LogInfo("Night Ordering toggled to: " + ModConfig.AllowOrderingAfter9PM.Value);
+                        }
+                    }
+                }
+
+                if (ModConfig.AutoDiscountHotkey != null && ModConfig.AutoDiscountHotkey.Value != KeyCode.None && Input.GetKeyDown(ModConfig.AutoDiscountHotkey.Value))
+                {
+                    if (Plugin.LogSource != null)
+                    {
+                        Plugin.LogSource.LogInfo("Auto-Discount Hotkey pressed! Applying discounts to overstocked products...");
+                    }
+                    DiscountPatch.ToggleOverstockDiscounts();
                 }
 
                 // 2. Direct mouse left-click detection (WorldSpace Camera & Overlay)
