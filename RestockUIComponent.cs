@@ -51,16 +51,16 @@ namespace WarehouseRestockMod
                     }
                 }
 
-                // 3. Visibility Check (Only active when Products/Market Shopping Cart is open)
+                // 3. Strict Tab / Panel Visibility Restriction
                 CartManager cart = CartManager.Instance;
                 MarketShoppingCart shoppingCart = (cart != null) ? cart.MarketShoppingCart : GameObject.FindObjectOfType<MarketShoppingCart>();
-                bool isMarketOpen = (shoppingCart != null && shoppingCart.gameObject.activeInHierarchy);
+                bool isCartPanelOpen = (shoppingCart != null && shoppingCart.gameObject.activeInHierarchy);
 
                 if (createdButtonObj != null)
                 {
-                    if (createdButtonObj.activeSelf != isMarketOpen)
+                    if (createdButtonObj.activeSelf != isCartPanelOpen)
                     {
-                        createdButtonObj.SetActive(isMarketOpen);
+                        createdButtonObj.SetActive(isCartPanelOpen);
                     }
                 }
 
@@ -108,90 +108,35 @@ namespace WarehouseRestockMod
                     hasLoggedInitialScan = true;
                 }
 
-                // CLEANUP & DEDUPLICATION: Search globally for existing FillRackStockButton
-                GameObject existingObj = GameObject.Find("FillRackStockButton");
-                if (existingObj != null)
+                // CLEANUP & DEDUPLICATION: Search inside MarketShoppingCart for existing button
+                Transform existing = shoppingCart.transform.Find("FillRackStockButton");
+                if (existing != null)
                 {
-                    createdButtonObj = existingObj;
-                    createdButtonRect = existingObj.GetComponent<RectTransform>();
-                    existingObj.SetActive(true);
+                    createdButtonObj = existing.gameObject;
+                    createdButtonRect = existing.GetComponent<RectTransform>();
+                    existing.gameObject.SetActive(true);
                     return;
                 }
 
-                // Locate Vehicles button or Cart button in Market App top bar
-                GameObject vehicleBtnObj = null;
-                GameObject cartLogoObj = null;
-
-                Button[] allButtons = shoppingCart.transform.root.GetComponentsInChildren<Button>(true);
-                if (allButtons != null)
-                {
-                    foreach (Button b in allButtons)
-                    {
-                        if (b == null) continue;
-                        string bName = b.gameObject.name.ToLower();
-                        if (bName.Contains("vehicle"))
-                        {
-                            vehicleBtnObj = b.gameObject;
-                        }
-                        else if (bName.Contains("cart") || bName.Contains("basket"))
-                        {
-                            if (b.gameObject.name != "FillRackStockButton")
-                            {
-                                cartLogoObj = b.gameObject;
-                            }
-                        }
-                    }
-                }
-
-                // Select target anchor button (Vehicles button preferred, fallback to Cart logo)
-                GameObject anchorObj = vehicleBtnObj ?? cartLogoObj;
-
-                // Select parent container
-                Transform parentContainer = shoppingCart.transform;
-                if (anchorObj != null && anchorObj.transform.parent != null)
-                {
-                    parentContainer = anchorObj.transform.parent;
-                }
-
-                // Construct Red Restock Button ONCE
+                // Parent DIRECTLY to MarketShoppingCart panel root (guarantees docking inside cart header)
                 GameObject btnObj = new GameObject("FillRackStockButton");
-                btnObj.transform.SetParent(parentContainer, false);
+                btnObj.transform.SetParent(shoppingCart.transform, false);
 
                 RectTransform rt = btnObj.AddComponent<RectTransform>();
                 createdButtonRect = rt;
                 createdButtonObj = btnObj;
 
-                if (anchorObj != null)
-                {
-                    RectTransform anchorRt = anchorObj.GetComponent<RectTransform>();
-                    if (anchorRt != null)
-                    {
-                        // Match compact logo height/size (28x28px)
-                        float iconSize = Math.Min(28f, anchorRt.sizeDelta.y > 0 ? anchorRt.sizeDelta.y : 28f);
-                        rt.sizeDelta = new Vector2(iconSize, iconSize);
-                        rt.anchorMin = anchorRt.anchorMin;
-                        rt.anchorMax = anchorRt.anchorMax;
-                        rt.pivot = anchorRt.pivot;
+                // Compact 26x26px Red Badge
+                rt.sizeDelta = new Vector2(26f, 26f);
 
-                        // Position horizontally AFTER Vehicles logo (to the right of Vehicles)
-                        float width = anchorRt.sizeDelta.x > 0 ? anchorRt.sizeDelta.x : iconSize;
-                        rt.anchoredPosition = new Vector2(anchorRt.anchoredPosition.x + (width + 6f), anchorRt.anchoredPosition.y);
-                    }
+                // Dock in top-right inner header of MarketShoppingCart panel (matching user's red square)
+                rt.anchorMin = new Vector2(1f, 1f);
+                rt.anchorMax = new Vector2(1f, 1f);
+                rt.pivot = new Vector2(1f, 1f);
+                rt.anchoredPosition = new Vector2(-42f, -12f);
 
-                    // Insert AFTER Vehicles button in sibling layout order
-                    int siblingIdx = anchorObj.transform.GetSiblingIndex();
-                    btnObj.transform.SetSiblingIndex(siblingIdx + 1);
-                }
-                else
-                {
-                    // Fallback top-right header alignment (28x28px pill badge)
-                    rt.sizeDelta = new Vector2(28f, 28f);
-                    rt.anchorMin = new Vector2(1f, 1f);
-                    rt.anchorMax = new Vector2(1f, 1f);
-                    rt.pivot = new Vector2(1f, 1f);
-                    rt.anchoredPosition = new Vector2(-60f, -12f);
-                    btnObj.transform.SetAsLastSibling();
-                }
+                // Elevate to top z-order inside MarketShoppingCart canvas
+                btnObj.transform.SetAsLastSibling();
 
                 // Standalone Bright Red Background Image (#EF4444)
                 Image btnImg = btnObj.AddComponent<Image>();
@@ -218,7 +163,7 @@ namespace WarehouseRestockMod
 
                 Text txt = textObj.AddComponent<Text>();
                 txt.text = "+FILL";
-                txt.fontSize = 9;
+                txt.fontSize = 8;
                 txt.fontStyle = FontStyle.Bold;
                 txt.color = Color.white;
                 txt.alignment = TextAnchor.MiddleCenter;
@@ -236,7 +181,7 @@ namespace WarehouseRestockMod
 
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Placed compact Red Restock button after Vehicles logo on Products tab!");
+                    Plugin.LogSource.LogInfo("[TEST SUCCESS] Successfully docked Red Restock button inside MarketShoppingCart header!");
                 }
             }
             catch (Exception ex)
