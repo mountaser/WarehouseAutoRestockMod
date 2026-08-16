@@ -47,8 +47,8 @@ A custom **BepInEx 6 (IL2CPP)** plugin for **Supermarket Simulator V1.2.8** that
 
 ## ⚠️ Known Limitations
 
-* **Direct-to-warehouse delivery only reliably fills a slot's first box, not its second.**
-  Rack slots hold up to 2 boxes, but the native call this mod uses to dock a box (`RackSlot.Initialize`) only reliably works going from 0→1 boxes in a slot; a second box into an already-occupied slot silently no-ops instead of erroring. In practice this means direct delivery currently docks roughly the first half of a large order and leaves the rest as loose boxes for restockers (or the player) to place manually — confirmed in logs at ~131/2318 boxes (5.6%) successfully auto-docked in one session, almost all failures being "add 2nd box to a slot that already has 1." A fix that scopes direct delivery to empty slots only (trading full slot-packing for a near-100% success rate) is planned — see `docs/plans/`.
+* **Direct-to-warehouse delivery only auto-docks a slot's first box, not its second.**
+  Rack slots hold up to 2 boxes, but the native call this mod uses to dock a box (`RackSlot.Initialize`) only reliably works going from 0→1 boxes in a slot; a second box into an already-occupied slot silently no-ops instead of erroring. Direct delivery therefore only targets empty slots — any 2nd box per slot is left as a loose floor box for restockers (or the player) to place manually. `RestockCalculator` already deducts loose floor boxes from future orders, so nothing is double-ordered.
 * **Restockers can get stuck holding a box when their target rack slot fills up or becomes unavailable mid-task**, with no current way for them to drop it and move on. A fix is planned — see `docs/plans/`.
 * **Requires a physical label on the rack slot.** Slots with a `ProductID` assigned but no label placed are skipped by both the stock calculator and direct delivery, since the native slot-initialize call throws on them.
 * Compiled against a specific game build (`V1.2.8 Build 186`); native method signatures this mod depends on (`RackSlot.Initialize`, `Restocker.*`, etc.) may change on other game versions.
