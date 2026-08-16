@@ -43,6 +43,7 @@ namespace WarehouseRestockMod
             SafePatch(harmony, typeof(RackInitializeResiliencePatch));
             SafePatch(harmony, typeof(StorageSectionManagerStartResiliencePatch));
             SafePatch(harmony, typeof(RestockerDropBoxWhenStuckPatch));
+            SafePatch(harmony, typeof(RestockerDropBoxWhenStuckFallbackPatch));
 
             Log.LogInfo(PluginInfo.PLUGIN_NAME + " v" + PluginInfo.PLUGIN_VERSION + " initialized with Night Market Ordering, Wholesale Restock Discounts & Catalog UI!");
         }
