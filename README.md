@@ -36,6 +36,9 @@ A custom **BepInEx 6 (IL2CPP)** plugin for **Supermarket Simulator V1.2.8** that
 * ⌨️ **Optional Hotkeys:**
   Bindable shortcuts for triggering Fill Rack Stock, toggling night ordering, and applying auto-discounts (all default to `None`/off).
 
+* 📤 **Clerk Unstick:**
+  If a clerk (restocker) ends up stationary for 10+ seconds while still carrying a box — e.g. its target rack slot filled up or became otherwise unreachable — it drops the box and immediately looks for new work instead of standing there indefinitely (`DropBoxWhenRackFull`, default on). Detected by polling position + carried-box state every 2 seconds rather than hooking the game's own AI code, since none of that AI's methods (not even basic Unity lifecycle methods) turned out to be interceptable with Harmony in this build.
+
 ---
 
 ## 📋 Requirements
@@ -49,9 +52,9 @@ A custom **BepInEx 6 (IL2CPP)** plugin for **Supermarket Simulator V1.2.8** that
 
 * **Direct-to-warehouse delivery only auto-docks a slot's first box, not its second.**
   Rack slots hold up to 2 boxes, but the native call this mod uses to dock a box (`RackSlot.Initialize`) only reliably works going from 0→1 boxes in a slot; a second box into an already-occupied slot silently no-ops instead of erroring. Direct delivery therefore only targets empty slots — any 2nd box per slot is left as a loose floor box for restockers (or the player) to place manually. `RestockCalculator` already deducts loose floor boxes from future orders, so nothing is double-ordered.
-* **Restockers can get stuck holding a box when their target rack slot fills up or becomes unavailable mid-task**, with no current way for them to drop it and move on. A fix is planned — see `docs/plans/`.
 * **Requires a physical label on the rack slot.** Slots with a `ProductID` assigned but no label placed are skipped by both the stock calculator and direct delivery, since the native slot-initialize call throws on them.
-* Compiled against a specific game build (`V1.2.8 Build 186`); native method signatures this mod depends on (`RackSlot.Initialize`, `Restocker.*`, etc.) may change on other game versions.
+* **Clerk Unstick takes up to ~12 seconds to react** (10s stationary threshold + up to 2s poll interval), since it detects the stuck symptom by polling rather than reacting to a game event — there's no way to make it instant without a working Harmony hook into the game's own AI, which isn't available in this build (see the comment atop `RestockerUnstickPoller.cs`).
+* Compiled against a specific game build (`V1.2.8 Build 186`); native method signatures this mod depends on (`RackSlot.Initialize`, `Clerk.*`, etc.) may change on other game versions. Note: the older `Restocker` class (still present in the game's assembly) is a legacy/preview-only type, not what drives hired workers — don't hook it.
 
 ---
 
