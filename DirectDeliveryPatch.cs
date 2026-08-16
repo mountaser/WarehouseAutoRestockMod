@@ -162,20 +162,27 @@ namespace WarehouseRestockMod
                     if (!hasLabel) continue;
 
                     int currentBoxes = (slot.Data.RackedBoxDatas != null) ? slot.Data.RackedBoxDatas.Count : 0;
-                    int maxBoxes = 2; // Default max box capacity per slot
 
-                    if (currentBoxes < maxBoxes)
+                    // RackSlot.Initialize(box) only reliably works going from 0 -> 1 boxes in a
+                    // slot; adding a 2nd box to an already-occupied slot silently no-ops instead
+                    // of throwing (confirmed in BepInEx/LogOutput.log: every "did not actually
+                    // add the box" warning had countAfter == 1). Only target empty slots here so
+                    // direct delivery doesn't burn its per-frame budget retrying a doomed
+                    // placement. The 2nd box per slot is left as a loose box for restockers (or
+                    // the player) to place manually - RestockCalculator.ExecuteRestockOrder
+                    // already deducts loose floor boxes from future orders, so it isn't lost
+                    // from accounting, just not auto-docked.
+                    if (currentBoxes == 0)
                     {
                         // RackSlot.AddBox() throws NRE almost every call here, and
                         // BoxGenerator.SpawnBoxInRack(slot.InteractionPosition, ...) never actually
                         // docks anything either (0/936 and 0/567 across two full sessions) - likely
                         // because InteractionPosition/Rotation are the player's stand-point for using
                         // the slot, not a box placement anchor. RackSlot.Initialize(Box) is what
-                        // actually works reliably: it's the exact call the vanilla save loader makes
-                        // for every box, and this mod already recorded real successful deliveries
-                        // through it (13, 6, 12 boxes in one session). It doesn't reliably add a 2nd
-                        // box to an already-occupied slot (silently no-ops instead of throwing), but
-                        // the count-verification below catches that safely and just tries another slot.
+                        // actually works reliably for filling an empty slot: it's the exact call the
+                        // vanilla save loader makes for every box. The count-verification below is
+                        // kept as a safety net in case Initialize unexpectedly no-ops even on an
+                        // empty slot.
                         int countBefore = currentBoxes;
                         try
                         {
