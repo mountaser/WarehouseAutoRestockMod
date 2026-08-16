@@ -12,6 +12,8 @@ namespace WarehouseRestockMod
 
         public static ConfigEntry<bool> AllowOrderingAfter9PM;
 
+        public static ConfigEntry<bool> DropBoxWhenRackFull;
+
         public static ConfigEntry<int> WholesaleRestockDiscountPercent;
 
         public static ConfigEntry<int> CustomDiscountPercentage;
@@ -31,6 +33,8 @@ namespace WarehouseRestockMod
             ClearCartBeforeFilling = config.Bind("General", "ClearCartBeforeFilling", true, "Clear existing cart items before filling missing rack stock");
 
             AllowOrderingAfter9PM = config.Bind("NightOrdering", "AllowOrderingAfter9PM", true, "Allow placing market app orders and instant delivery after 9:00 PM when market closes");
+
+            DropBoxWhenRackFull = config.Bind("Restockers", "DropBoxWhenRackFull", true, "When a restocker gets stuck holding a box because its target rack slot is full or otherwise unavailable, make it drop the box and look for a new task instead of blocking");
 
             WholesaleRestockDiscountPercent = config.Bind("Wholesale", "WholesaleRestockDiscountPercent", 20, "Discount percentage off market box price when restocking via +FILL (0% to 50%)");
 
