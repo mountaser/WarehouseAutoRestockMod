@@ -34,7 +34,7 @@ namespace WarehouseRestockMod
 
             AllowOrderingAfter9PM = config.Bind("NightOrdering", "AllowOrderingAfter9PM", true, "Allow placing market app orders and instant delivery after 9:00 PM when market closes");
 
-            DropBoxWhenRackFull = config.Bind("Restockers", "DropBoxWhenRackFull", true, "When a restocker gets stuck holding a box because its target rack slot is full or otherwise unavailable, make it drop the box and look for a new task instead of blocking");
+            DropBoxWhenRackFull = config.Bind("Restockers", "DropBoxWhenRackFull", true, "When a clerk has been standing still for 10+ seconds while still carrying a box (e.g. its target rack slot filled up), make it drop the box and look for new work instead of blocking. Detected by polling, so it reacts within ~12 seconds.");
 
             WholesaleRestockDiscountPercent = config.Bind("Wholesale", "WholesaleRestockDiscountPercent", 20, "Discount percentage off market box price when restocking via +FILL (0% to 50%)");
 

@@ -182,6 +182,8 @@ git commit -m "docs: update README limitation note now that empty-slot-only deli
 
 ### Investigation summary (already done — informs the tasks below)
 
+**OUTCOME:** Part B was NOT implemented as designed below. Both Harmony patches (`GoToWaiting`, `CheckForAvailableRackSlotToPlaceBox`) loaded but never fired at runtime — the `Restocker` class turned out to be a legacy/preview-only type; real workers are driven by `SupermarketSimulator.Clerk.Clerk`. See `RestockerUnstickPoller.cs`/`ClerkUnstickPoller.cs` and commit `b0298a7` for what actually shipped: a position/CarryingBox polling approach.
+
 Inspecting `BepInEx/interop/Assembly-CSharp.dll` metadata (via a reflection-only load, since IL2CPP interop DLLs carry full field/property/method signatures even though bodies are native stubs) found the exact native shape of the restocker AI:
 
 - `RestockerState` is a `System.Enum` with values `IDLE`, `RESTOCKING`, `WAITING_FOR_AVAILABLE_RACK_SLOT`.

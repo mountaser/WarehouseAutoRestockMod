@@ -23,7 +23,7 @@ namespace WarehouseRestockMod
     // direct method calls (not Harmony-patched interception) are used throughout, since those
     // are proven reliable elsewhere in this mod. Called periodically from
     // RestockUIComponent.Update(), which is proven to tick reliably every frame.
-    public static class RestockerUnstickPoller
+    public static class ClerkUnstickPoller
     {
         private const float PollIntervalSeconds = 2f;
         private const float StuckThresholdSeconds = 10f;
@@ -37,12 +37,18 @@ namespace WarehouseRestockMod
 
         private static readonly Dictionary<int, Tracked> tracked = new Dictionary<int, Tracked>();
         private static float lastPollTime = 0f;
+        private static bool loggedReadFailure = false;
 
         public static void Poll()
         {
-            if (ModConfig.DropBoxWhenRackFull == null || !ModConfig.DropBoxWhenRackFull.Value) return;
             if (Time.time - lastPollTime < PollIntervalSeconds) return;
             lastPollTime = Time.time;
+
+            if (ModConfig.DropBoxWhenRackFull == null || !ModConfig.DropBoxWhenRackFull.Value)
+            {
+                tracked.Clear();
+                return;
+            }
 
             try
             {
@@ -54,15 +60,35 @@ namespace WarehouseRestockMod
                 foreach (Clerk c in clerks)
                 {
                     if (c == null) continue;
+                    if (!c.gameObject.activeInHierarchy) continue;
 
                     int id;
                     bool carrying;
+                    Vector3 pos;
                     try
                     {
                         id = c.EmployeeId;
                         carrying = c.CarryingBox;
+                        pos = c.transform.position;
                     }
-                    catch { continue; }
+                    catch
+                    {
+                        if (!loggedReadFailure)
+                        {
+                            loggedReadFailure = true;
+                            if (Plugin.LogSource != null)
+                            {
+                                Plugin.LogSource.LogWarning(
+                                    "ClerkUnstickPoller: failed to read EmployeeId/CarryingBox/position off a Clerk instance - " +
+                                    "this member may have been renamed or removed in the current game build. Skipping affected clerks silently from now on.");
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Same sentinel pattern as the legacy Restocker preview instance (EmployeeId -1):
+                    // skip any clerk with a negative EmployeeId as defense in depth.
+                    if (id < 0) continue;
 
                     if (!carrying)
                     {
@@ -71,7 +97,6 @@ namespace WarehouseRestockMod
                     }
 
                     seenIds.Add(id);
-                    Vector3 pos = c.transform.position;
                     float now = Time.time;
 
                     if (!tracked.TryGetValue(id, out Tracked t))
@@ -129,7 +154,7 @@ namespace WarehouseRestockMod
             {
                 if (Plugin.LogSource != null)
                 {
-                    Plugin.LogSource.LogError("Error in RestockerUnstickPoller.Poll: " + ex.ToString());
+                    Plugin.LogSource.LogError("Error in ClerkUnstickPoller.Poll: " + ex.ToString());
                 }
             }
         }

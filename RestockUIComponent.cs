@@ -96,7 +96,7 @@ namespace WarehouseRestockMod
                 DirectDeliveryPatch.ProcessQueueBatch();
 
                 // 6. Periodically check for restockers stuck holding a box (self-throttles internally)
-                RestockerUnstickPoller.Poll();
+                ClerkUnstickPoller.Poll();
             }
             catch (Exception ex)
             {
