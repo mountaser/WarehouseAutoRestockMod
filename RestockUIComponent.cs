@@ -91,6 +91,9 @@ namespace WarehouseRestockMod
                     lastCheckTime = Time.time;
                     CheckAndInjectUIButton();
                 }
+
+                // 5. Drain a few queued direct-to-warehouse box placements this frame
+                DirectDeliveryPatch.ProcessQueueBatch();
             }
             catch (Exception ex)
             {

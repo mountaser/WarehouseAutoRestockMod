@@ -53,6 +53,14 @@ namespace WarehouseRestockMod
                         int productID = slot.Data.ProductID;
                         if (productID <= 0) continue;
 
+                        // Slots with a ProductID assigned but no physical label placed can't
+                        // reliably accept a box (RackSlot.Initialize/AddBox NullReferenceException
+                        // on this save's unlabeled slots) - ordering for them just wastes cash on
+                        // stock that will never actually dock. Skip them.
+                        bool hasLabel = true;
+                        try { hasLabel = slot.HasLabel; } catch { }
+                        if (!hasLabel) continue;
+
                         int currentBoxes = (slot.Data.RackedBoxDatas != null) ? slot.Data.RackedBoxDatas.Count : 0;
                         int maxBoxes = 2; // Default max box capacity per slot
 
