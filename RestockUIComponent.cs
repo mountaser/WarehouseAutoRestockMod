@@ -94,6 +94,9 @@ namespace WarehouseRestockMod
 
                 // 5. Drain a few queued direct-to-warehouse box placements this frame
                 DirectDeliveryPatch.ProcessQueueBatch();
+
+                // 6. Periodically check for restockers stuck holding a box (self-throttles internally)
+                RestockerUnstickPoller.Poll();
             }
             catch (Exception ex)
             {
